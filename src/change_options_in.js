@@ -1,7 +1,7 @@
 /**
  * @overview changeOptionsIn jQuery plugin definition
  * @copyright 2014 Edy Josafat Hernández Vega
- * @version 0.2
+ * @version 0.3
  * @author  Eddy Josafat <eddy@ejosafat.com>
  * @license MIT license (see included file)
  * @requires jQuery 2.x
@@ -18,25 +18,28 @@
 'use strict';
 
 (function($) {
-  var _this, $slave, blankOption, slaveOptions;
+  var DATA_KEY = 'changeOptionsIn';
 
   $.fn.changeOptionsIn = function(options) {
+    this.data(DATA_KEY, {
+      blankOption: options.blankOption,
+      slave: $(options.slaveSelector),
+      slaveOptions: options.optionData
+    });
+    this.change($.proxy(changeOptionsIn, this));
 
-    $slave = $(options.slaveSelector);
-    slaveOptions = options.optionData;
-    _this = this;
-    this.on('change', changeOptionsIn);
-    blankOption = options.blankOption;
     return this;
   };
 
   function changeOptionsIn() {
-    var options = slaveOptions[_this.val()] || [];
+    var blankOption = this.data(DATA_KEY).blankOption,
+        options = this.data(DATA_KEY).slaveOptions[this.val()] || [],
+        $slave = this.data(DATA_KEY).slave;
 
-    setNewSelectOptions(options);
+    setNewSelectOptions($slave, options);
 
     if (options.length === 0) {
-      setEmptySelect();
+      setEmptySelect($slave, blankOption);
     }
   }
 
@@ -47,7 +50,7 @@
     });
   }
 
-  function setEmptySelect() {
+  function setEmptySelect($slave, blankOption) {
     if (typeof blankOption != 'undefined') {
       $slave.append(makeOption({ value: '', text: blankOption }));
     } else {
@@ -55,7 +58,7 @@
     }
   }
 
-  function setNewSelectOptions(options) {
+  function setNewSelectOptions($slave, options) {
     $slave.empty();
     $.each(options, function(index, option) {
       $slave.append(makeOption(option));

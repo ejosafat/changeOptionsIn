@@ -3,6 +3,7 @@
 describe("changeOptionsIn", function() {
   beforeEach(function() {
     jasmine.addMatchers(customMatchers);
+    setMasterAndSlaveOptionData.call(this);
   });
 
   xdescribe("option data formats", function() {
@@ -16,48 +17,111 @@ describe("changeOptionsIn", function() {
 
   describe("when we select an option in master select", function() {
     beforeEach(function() {
-      setMasterAndSlaveOptionData.call(this);
+      this.secondMasterOptionValue = this.masterOptionValues[1].value;
+      this.expectedSlaveOptionValues = this.slaveOptionValues[this.secondMasterOptionValue];
+
       createHTMLFixture.call(this);
     });
 
-    // Initial conditions after loading html fixture:
-    // #master select has first option selected
-    // #slave has options corresponding to first #master option
-
     it("should replace the options in slave select", function() {
-      var _this = this,
-          secondMasterOptionValue = this.masterOptionValues[1].value,
-          expectedSlaveOptionValues = this.slaveOptionValues[secondMasterOptionValue];
-
       $('#master').changeOptionsIn({
         optionData: this.slaveOptionValues,
         slaveSelector: '#slave'
       });
 
-      changeMasterValueTo(secondMasterOptionValue);
+      changeMasterValueTo(this.secondMasterOptionValue);
 
-      expect($('#slave option')).toExist();
-      expect($('#slave option')).toHaveSameSizeAs(expectedSlaveOptionValues);
-      expect($('#slave')).toHaveOptionValues(expectedSlaveOptionValues);
-    });
-
-    xit("shouldn't add a blank option to slave select if it wasn't specified as an option", function() {
-      
-    });
-    xit("should add a blank option to slave select if it was specified as an option", function() {
-      
+      expect($('#slave')).toHaveOptionValues(this.expectedSlaveOptionValues);
     });
   });
 
-  xdescribe("when we select a option with no value or not present in slave options", function() {
-    xit("should delete the options in slave select", function() {
-      
+  describe("when we select a blank option", function() {
+    beforeEach(function() {
+      var selectedMasterOptionIndex = 1;
+      this.blankText = 'All';
+      this.masterOptionValues.unshift({ value: '', text: this.blankText});
+      this.blankMasterOptionValue = '';
+
+      createHTMLFixture.call(this, selectedMasterOptionIndex);
     });
-    xit("should add a blank option to slave select if it was specified as an option", function() {
-      
+
+    it("should delete the options in slave select if no blank option was specified", function() {
+      $('#master').changeOptionsIn({
+        optionData: this.slaveOptionValues,
+        slaveSelector: '#slave'
+      });
+
+      changeMasterValueTo(this.blankMasterOptionValue);
+
+      expect($('#slave option')).not.toExist();
     });
-    xit("should disable slave select if add a blank option wasn't specified", function() {
-      
+
+    it("should add a blank option to slave select if it was specified as an option", function() {
+      $('#master').changeOptionsIn({
+        blankOption: this.blankText,
+        optionData: this.slaveOptionValues,
+        slaveSelector: '#slave'
+      });
+
+      changeMasterValueTo(this.blankMasterOptionValue);
+
+      expect($('#slave')).toHaveOnlyABlankOptionWithText(this.blankText);
+    });
+
+    it("should disable slave select if add a blank option wasn't specified", function() {
+      $('#master').changeOptionsIn({
+        optionData: this.slaveOptionValues,
+        slaveSelector: '#slave'
+      });
+
+      changeMasterValueTo(this.blankMasterOptionValue);
+
+      expect($('#slave')).toBeDisabled();
+    });
+  });
+
+  describe("when we select a master option without associated slave option set", function() {
+    beforeEach(function() {
+      this.secondMasterOptionValue = this.masterOptionValues[1].value;
+      this.blankText = 'All';
+      delete this.slaveOptionValues[this.secondMasterOptionValue]
+      this.blankMasterOptionValue = '';
+
+      createHTMLFixture.call(this);
+    });
+
+    it("should delete the options in slave select if no blank option was specified", function() {
+      $('#master').changeOptionsIn({
+        optionData: this.slaveOptionValues,
+        slaveSelector: '#slave'
+      });
+
+      changeMasterValueTo(this.secondMasterOptionValue);
+
+      expect($('#slave option')).not.toExist();
+    });
+
+    it("should add a blank option to slave select if it was specified as an option", function() {
+      $('#master').changeOptionsIn({
+        blankOption: this.blankText,
+        optionData: this.slaveOptionValues,
+        slaveSelector: '#slave'
+      });
+
+      changeMasterValueTo(this.secondMasterOptionValue);
+
+      expect($('#slave')).toHaveOnlyABlankOptionWithText(this.blankText);
+    });
+
+    it("should disable slave select if add a blank option wasn't specified", function() {
+      $('#master').changeOptionsIn({
+        optionData: this.slaveOptionValues,
+        slaveSelector: '#slave'
+      });
+
+      changeMasterValueTo(this.secondMasterOptionValue);
+
+      expect($('#slave')).toBeDisabled();
     });
   });
 
@@ -79,12 +143,16 @@ describe("changeOptionsIn", function() {
     this.slaveOptionValues[$('#master').val()];
   }
 
-  function createHTMLFixture() {
+  // Initial conditions after loading html fixtures:
+  // #master select has first option selected
+  // #slave has options corresponding to first #master option
+  function createHTMLFixture(selectedMasterOptionIndex) {
+    selectedMasterOptionIndex = selectedMasterOptionIndex || 0;
+
     setFixtures('<select id="master"></select><select id="slave"></select>');
     fillSelect($('#master'), this.masterOptionValues);
-    $('#master option:first').attr('selected', true);
+    $($('#master option')[selectedMasterOptionIndex]).attr('selected', true);
     fillSelect($('#slave'), this.slaveOptionValues[$('#master').val()]);
-    $('#slave option:first').attr('selected', true);
   }
 
   function fillSelect($select, options) {
@@ -135,6 +203,28 @@ describe("changeOptionsIn", function() {
   }
 
   var customMatchers = {
+    toHaveOnlyABlankOptionWithText: function(utils, customEqualityTesters) {
+      return {
+        compare: function(actual, expected) {
+          var $option = $(actual).children('option'),
+              content = $(actual).html(),
+              result = {};
+
+          result.pass = true;
+
+          if ($option.length !== 1) result.pass = false;
+          if ($option.text() !== expected) result.pass = false;
+          if ($option.attr('value') !== '') result.pass = false;
+
+          if (!result.pass) {
+            content = content === '' ? 'nothing' : content;
+            result.message = 'A blank option was expected, but it contains ' + content;
+          }
+          return result;
+        }
+      };
+    },
+
     toHaveSameSizeAs: function(utils, customEqualityTesters) {
       return {
         compare: function(actual, expected) {
@@ -148,8 +238,9 @@ describe("changeOptionsIn", function() {
 
           return result;
         }
-      }
+      };
     },
+
     toHaveOptionValues: function(utils, customEqualityTesters) {
       return {
         compare: function(actual, expected) {
@@ -166,7 +257,7 @@ describe("changeOptionsIn", function() {
           })
           return result;
         }
-      }
+      };
     }
   };
 

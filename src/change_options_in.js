@@ -1,7 +1,7 @@
 /**
  * @overview changeOptionsIn jQuery plugin definition
  * @copyright 2014 Edy Josafat Hernández Vega
- * @version 0.1
+ * @version 0.2
  * @author  Eddy Josafat <eddy@ejosafat.com>
  * @license MIT license (see included file)
  * @requires jQuery 2.x
@@ -18,7 +18,7 @@
 'use strict';
 
 (function($) {
-  var _this, $slave, slaveOptions;
+  var _this, $slave, blankOption, slaveOptions;
 
   $.fn.changeOptionsIn = function(options) {
 
@@ -26,21 +26,39 @@
     slaveOptions = options.optionData;
     _this = this;
     this.on('change', changeOptionsIn);
+    blankOption = options.blankOption;
     return this;
   };
 
   function changeOptionsIn() {
-    var options = slaveOptions[_this.val()];
-    $slave.empty();
-    $.each(options, function(index, option) {
-      $slave.append(makeOption(option));
-    });
+    var options = slaveOptions[_this.val()] || [];
+
+    setNewSelectOptions(options);
+
+    if (options.length === 0) {
+      setEmptySelect();
+    }
   }
 
   function makeOption(optionData) {
     return $('<option>', {
       text: optionData.text,
       value: optionData.value
+    });
+  }
+
+  function setEmptySelect() {
+    if (typeof blankOption != 'undefined') {
+      $slave.append(makeOption({ value: '', text: blankOption }));
+    } else {
+      $slave.attr('disabled', true);
+    }
+  }
+
+  function setNewSelectOptions(options) {
+    $slave.empty();
+    $.each(options, function(index, option) {
+      $slave.append(makeOption(option));
     });
   }
 

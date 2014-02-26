@@ -5,12 +5,27 @@ describe("changeOptionsIn", function() {
     jasmine.addMatchers(customMatchers);
   });
 
-  xdescribe("option data formats", function() {
-    xit("should allow object literals", function() {
+  describe("option data formats", function() {
+    it("should allow arrays", function() {
+      var data, expectedSlaveOptions, newSelectValueToChoose;
+
+      data = testData([['master', 'slave']]);
+      createHTMLFixture({
+        data: data,
+        selectedMasterOption: 0
+      });
+
+      newSelectValueToChoose = data['master'].masterOptions[1].value;
+      expectedSlaveOptions = data['master'].slaves['slave'][newSelectValueToChoose];
       
-    });
-    xit("should allow arrays", function() {
-      
+      $('#master').changeOptionsIn({
+        optionData: slaveOptionsHashesToArray(data['master'].slaves['slave']),
+        slaveSelector: '#slave'
+      });
+
+      changeMasterValueTo('master', newSelectValueToChoose);
+
+      expect($('#slave')).toHaveOptionValues(expectedSlaveOptions);
     });
   })
 
@@ -362,11 +377,27 @@ describe("changeOptionsIn", function() {
       set[masterSet[i].value] = optionSet({
           numOptions: numOptions,
           textPrefix: masterSet[i].text + '-' + slaveId + '-',
-          valuePrefix: masterSet[i].text + '-' + slaveId + '-'
+          valuePrefix: 'value-' + masterSet[i].text + '-' + slaveId + '-'
       });
     }
 
     return set;
+  }
+
+  function slaveOptionsHashesToArray(slaveOptions) {
+    var hashValues, values,
+        options = {};
+
+    for (var key in slaveOptions) {
+      values = [];
+      hashValues = slaveOptions[key];
+      for (var i in hashValues) {
+        values.push([hashValues[i].text, hashValues[i].value]);
+      }
+      options[key] = values;
+    }
+
+    return options;
   }
 
   var customMatchers = {

@@ -1,7 +1,7 @@
 /**
  * @overview changeOptionsIn jQuery plugin definition
  * @copyright 2014 Edy Josafat Hernández Vega
- * @version 0.5
+ * @version 0.6
  * @author  Eddy Josafat <eddy@ejosafat.com>
  * @license MIT license (see included file)
  * @requires jQuery 2.x
@@ -86,6 +86,8 @@
     },
 
     setOptions: function(options) {
+      if ($(options.slaveSelector).length === 0) throw new Error('Slave not found');
+
       this._slaves[options.slaveSelector] = {
         blankOption: options.blankOption,
         slave: $(options.slaveSelector),

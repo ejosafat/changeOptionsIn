@@ -267,8 +267,21 @@ describe("changeOptionsIn", function() {
     });
   });
 
-  xdescribe("error conditions", function() {
-    xit("should throw a bad argument error if slave isn't found in the DOM");
+  describe("error conditions", function() {
+    it("should throw an error if slave isn't found in the DOM", function() {
+      var data = testData([['master', 'slave']]);
+
+      createHTMLFixture({
+        data: data,
+        selectedMasterOption: 0
+      });
+      $('#slave').remove();
+
+      expect($.proxy($('#master'), 'changeOptionsIn', {
+        optionData: data['master'].slaves['slave'],
+        slaveSelector: '#slave'
+      })).toThrow(new Error('Slave not found'));
+    });
   })
 
   function appendSelect(selectId, options) {

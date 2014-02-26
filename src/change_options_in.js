@@ -1,7 +1,7 @@
 /**
  * @overview changeOptionsIn jQuery plugin definition
  * @copyright 2014 Edy Josafat Hernández Vega
- * @version 0.3
+ * @version 0.4
  * @author  Eddy Josafat <eddy@ejosafat.com>
  * @license MIT license (see included file)
  * @requires jQuery 2.x
@@ -21,26 +21,27 @@
   var DATA_KEY = 'changeOptionsIn';
 
   $.fn.changeOptionsIn = function(options) {
-    this.data(DATA_KEY, {
-      blankOption: options.blankOption,
-      slave: $(options.slaveSelector),
-      slaveOptions: options.optionData
-    });
+    var data = SlaveData.singleton(this);
+
+    data.setOptions(options);
     this.change($.proxy(changeOptionsIn, this));
 
     return this;
   };
 
   function changeOptionsIn() {
-    var blankOption = this.data(DATA_KEY).blankOption,
-        options = this.data(DATA_KEY).slaveOptions[this.val()] || [],
-        $slave = this.data(DATA_KEY).slave;
+    var options,
+        _this = this,
+        data = this.data(DATA_KEY);
+    data.eachSlave(function(slaveId, slaveData) {
+      options = data.getOptions(slaveId, _this.val());
 
-    setNewSelectOptions($slave, options);
+      setNewSelectOptions(slaveData.slave, options);
 
-    if (options.length === 0) {
-      setEmptySelect($slave, blankOption);
-    }
+      if (options.length === 0) {
+        setEmptySelect(slaveData.slave, slaveData.blankOption);
+      }
+    });
   }
 
   function makeOption(optionData) {
@@ -64,6 +65,38 @@
       $slave.append(makeOption(option));
     });
   }
+
+  function SlaveData(element) {
+    this._element = element;
+    this._slaves = {};
+  }
+
+  SlaveData.prototype = {
+    constructor: SlaveData,
+
+    eachSlave: function(callback) {
+      for (var key in this._slaves) {
+        callback(key, this._slaves[key]);
+      }
+    },
+
+    getOptions: function(slaveId, masterValue) {
+      return this._slaves[slaveId].slaveOptions[masterValue] || [];
+    },
+
+    setOptions: function(options) {
+      this._slaves[options.slaveSelector] = {
+        blankOption: options.blankOption,
+        slave: $(options.slaveSelector),
+        slaveOptions: options.optionData
+      };
+      this._element.data(DATA_KEY, this);
+    }    
+  };
+
+  SlaveData.singleton = function(element) {
+    return element.data(DATA_KEY) || new SlaveData(element);
+  };
 
 })(jQuery);
 

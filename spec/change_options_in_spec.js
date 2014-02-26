@@ -25,10 +25,10 @@ describe("changeOptionsIn", function() {
       });
 
       newSelectValueToChoose = data['master'].masterOptions[1].value;
-      expectedSlaveOptions = data['master'].slaveOptions[newSelectValueToChoose];
+      expectedSlaveOptions = data['master'].slaves['slave'][newSelectValueToChoose];
 
       $('#master').changeOptionsIn({
-        optionData: data['master'].slaveOptions,
+        optionData: data['master'].slaves['slave'],
         slaveSelector: '#slave'
       });
 
@@ -53,7 +53,7 @@ describe("changeOptionsIn", function() {
 
     it("should delete the options in slave select if no blank option was specified", function() {
       $('#master').changeOptionsIn({
-        optionData: this.data['master'].slaveOptions,
+        optionData: this.data['master'].slaves['slave'],
         slaveSelector: '#slave'
       });
 
@@ -65,7 +65,7 @@ describe("changeOptionsIn", function() {
     it("should add a blank option to slave select if it was specified as an option", function() {
       $('#master').changeOptionsIn({
         blankOption: this.blankText,
-        optionData: this.data['master'].slaveOptions,
+        optionData: this.data['master'].slaves['slave'],
         slaveSelector: '#slave'
       });
 
@@ -76,7 +76,7 @@ describe("changeOptionsIn", function() {
 
     it("should disable slave select if add a blank option wasn't specified", function() {
       $('#master').changeOptionsIn({
-        optionData: this.data['master'].slaveOptions,
+        optionData: this.data['master'].slaves['slave'],
         slaveSelector: '#slave'
       });
 
@@ -96,12 +96,12 @@ describe("changeOptionsIn", function() {
         selectedMasterOption: 0
       });
       this.newSelectValueToChoose = this.data['master'].masterOptions[1].value;
-      delete this.data['master'].slaveOptions[this.newSelectValueToChoose];
+      delete this.data['master'].slaves['slave'][this.newSelectValueToChoose];
     });
 
     it("should delete the options in slave select if no blank option was specified", function() {
       $('#master').changeOptionsIn({
-        optionData: this.data['master'].slaveOptions,
+        optionData: this.data['master'].slaves['slave'],
         slaveSelector: '#slave'
       });
 
@@ -113,7 +113,7 @@ describe("changeOptionsIn", function() {
     it("should add a blank option to slave select if it was specified as an option", function() {
       $('#master').changeOptionsIn({
         blankOption: this.blankText,
-        optionData: this.data['master'].slaveOptions,
+        optionData: this.data['master'].slaves['slave'],
         slaveSelector: '#slave'
       });
 
@@ -124,7 +124,7 @@ describe("changeOptionsIn", function() {
 
     it("should disable slave select if add a blank option wasn't specified", function() {
       $('#master').changeOptionsIn({
-        optionData: this.data['master'].slaveOptions,
+        optionData: this.data['master'].slaves['slave'],
         slaveSelector: '#slave'
       });
 
@@ -134,8 +134,68 @@ describe("changeOptionsIn", function() {
     });
   });
 
-  xdescribe("when we have more than one dependent slave", function() {
-    
+  describe("when we have more than one dependent slave", function() {
+    beforeEach(function() {
+      this.data = testData([['master', 'slaveA'], ['master', 'slaveB']]);
+      createHTMLFixture({
+        data: this.data,
+        selectedMasterOption: 0
+      });
+    });
+
+    it("should replace options in all slaves", function() {
+      var data = testData([['master', 'slaveA'], ['master', 'slaveB']]),
+          newMasterAOptionValue = this.data['master'].masterOptions[1].value,
+          expectedSlaveAOptions = this.data['master'].slaves['slaveA'][newMasterAOptionValue],
+          expectedSlaveBOptions = this.data['master'].slaves['slaveB'][newMasterAOptionValue];
+
+      createHTMLFixture({
+        data: data,
+        selectedMasterOption: 0
+      });
+
+      $('#master').changeOptionsIn({
+        optionData: this.data['master'].slaves['slaveA'],
+        slaveSelector: '#slaveA'
+      }).changeOptionsIn({
+        optionData: this.data['master'].slaves['slaveB'],
+        slaveSelector: '#slaveB'
+      });
+
+      changeMasterValueTo('master', newMasterAOptionValue);
+
+      expect($('#slaveA')).toHaveOptionValues(expectedSlaveAOptions);
+      expect($('#slaveB')).toHaveOptionValues(expectedSlaveBOptions);
+
+    });
+
+    it("should allow to set blank option separately for each slave", function() {
+      var blankText = 'All',
+          blankValue = '',
+          data = testData([['master', 'slaveA'], ['master', 'slaveB']]);
+
+      data['master'].masterOptions.unshift({ value: blankValue, text: blankText});
+      createHTMLFixture({
+        data: data,
+        selectedMasterOption: 1
+      });
+
+      $('#master').changeOptionsIn({
+        blankOption: blankText,
+        optionData: this.data['master'].slaves['slaveA'],
+        slaveSelector: '#slaveA'
+      }).changeOptionsIn({
+        optionData: this.data['master'].slaves['slaveB'],
+        slaveSelector: '#slaveB'
+      });
+
+      changeMasterValueTo('master', blankValue);
+
+      expect($('#slaveA')).toHaveOnlyABlankOptionWithText(blankText);
+      expect($('#slaveA')).not.toBeDisabled();
+      expect($('#slaveB option')).not.toExist();
+      expect($('#slaveB')).toBeDisabled();
+    });
   });
 
   describe("when we have several master and slaves", function() {
@@ -150,16 +210,16 @@ describe("changeOptionsIn", function() {
     it("selecting option in first master change options in its slave only", function() {
       var firstMasterBOptionValue = this.data['masterB'].masterOptions[0].value,
           newMasterAOptionValue = this.data['masterA'].masterOptions[1].value,
-          expectedSlaveAOptions = this.data['masterA'].slaveOptions[newMasterAOptionValue],
-          expectedSlaveBOptions = this.data['masterB'].slaveOptions[firstMasterBOptionValue]
+          expectedSlaveAOptions = this.data['masterA'].slaves['slaveA'][newMasterAOptionValue],
+          expectedSlaveBOptions = this.data['masterB'].slaves['slaveB'][firstMasterBOptionValue]
 
       $('#masterA').changeOptionsIn({
-        optionData: this.data['masterA'].slaveOptions,
+        optionData: this.data['masterA'].slaves['slaveA'],
         slaveSelector: '#slaveA'
       });
 
       $('#masterB').changeOptionsIn({
-        optionData: this.data['masterB'].slaveOptions,
+        optionData: this.data['masterB'].slaves['slaveB'],
         slaveSelector: '#slaveB'
       });
 
@@ -172,16 +232,16 @@ describe("changeOptionsIn", function() {
     it("selecting option in second master change options in its slave only", function() {
       var firstMasterAOptionValue = this.data['masterA'].masterOptions[0].value,
           newMasterBOptionValue = this.data['masterB'].masterOptions[1].value,
-          expectedSlaveBOptions = this.data['masterB'].slaveOptions[newMasterBOptionValue],
-          expectedSlaveAOptions = this.data['masterA'].slaveOptions[firstMasterAOptionValue]
+          expectedSlaveBOptions = this.data['masterB'].slaves['slaveB'][newMasterBOptionValue],
+          expectedSlaveAOptions = this.data['masterA'].slaves['slaveA'][firstMasterAOptionValue]
 
       $('#masterA').changeOptionsIn({
-        optionData: this.data['masterA'].slaveOptions,
+        optionData: this.data['masterA'].slaves['slaveA'],
         slaveSelector: '#slaveA'
       });
 
       $('#masterB').changeOptionsIn({
-        optionData: this.data['masterB'].slaveOptions,
+        optionData: this.data['masterB'].slaves['slaveB'],
         slaveSelector: '#slaveB'
       });
 
@@ -196,27 +256,33 @@ describe("changeOptionsIn", function() {
     xit("should throw a bad argument error if slave isn't found in the DOM");
   })
 
+  function appendSelect(selectId, options) {
+    var $select = $('<select id="' + selectId + '"></select>');
+    $('#select-container').append($select);
+    fillSelect($select, options);
+    return $select;
+  }
+
   function changeMasterValueTo(masterId, value) {
     var $master = $('#' + masterId);
     $master.val(value);
     $master.change();
   }
 
-  function currentSlaveOptionValues() {
-    this.slaveOptionValues[$('#master').val()];
-  }
-
   function createHTMLFixture(options) {
-    var data = (options && options.data) || {},
+    var $master,
+        data = (options && options.data) || {},
         selectedMasterOptionIndex = (options && options.selectedMasterOption) || 0;
 
     setFixtures('<div id="select-container"></div>');
 
     for(var masterId in data) {
-      $('#select-container').append($('<select id="' + masterId + '"></select><select id="' + data[masterId].slaveId + '"></select>'));
-      fillSelect($('#' + masterId), data[masterId].masterOptions);
-      $($('#' + masterId + ' option')[selectedMasterOptionIndex]).attr('selected', true);
-      fillSelect($('#' + data[masterId].slaveId), data[masterId].slaveOptions[$('#' + masterId).val()]);
+      $master = appendSelect(masterId, data[masterId].masterOptions)
+      $($master.children('option')[selectedMasterOptionIndex]).attr('selected', true);
+
+      for(var slaveId in data[masterId].slaves) {
+        appendSelect(slaveId, data[masterId].slaves[slaveId][$master.val()]);
+      }
     }
   }
 
@@ -234,27 +300,27 @@ describe("changeOptionsIn", function() {
   }
 
   function testData(selects) {
-    var masterId, masterOptions, slaveId, slaveOptions,
+    var masterId, slaveId, slaveOptions,
         data = {};
     
     for (var i in selects) {
       masterId = selects[i][0];
       slaveId = selects[i][1];
-      masterOptions = masterOptionSet({
+      data[masterId] = data[masterId] || {};
+      data[masterId].slaves = data[masterId].slaves || {};
+
+      data[masterId].masterOptions = data[masterId].masterOptions || masterOptionSet({
         masterId: masterId,
         numOptions: 2
       });
+
       slaveOptions = slaveOptionSet({
-        masterSet: masterOptions,
+        masterSet: data[masterId].masterOptions,
         numOptions: 2,
         slaveId: slaveId
       });
 
-      data[masterId] = {
-        masterOptions: masterOptions,
-        slaveId: slaveId,
-        slaveOptions: slaveOptions
-      }
+      data[masterId].slaves[slaveId] = slaveOptions;
     }
 
     return data;
